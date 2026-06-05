@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=600, height=600, initial-scale=1.0, user-scalable=no">
+  <meta name="description" content="Real-time Audio Capture Test">
+  <title>RT Audio Test</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <div class="screen">
+      <header class="header">
+        <h1>Real-Time Audio Test</h1>
+      </header>
+      <div class="content">
+        <div class="status-container">
+          <div id="status" class="status">Not Started</div>
+          <div id="method" class="method"></div>
+        </div>
+
+        <div class="controls">
+          <button id="start-mic" class="btn btn-primary">Test Microphone Input</button>
+          <button id="stop" class="btn" disabled>Stop</button>
+        </div>
+
+        <div class="info-box">
+          <h3>What This Tests:</h3>
+          <ul>
+            <li><strong>Microphone:</strong> Can capture ambient sound through device mic</li>
+            <li><strong>Limitation:</strong> Browser cannot access system audio (music playing on device)</li>
+            <li><strong>Workaround:</strong> Mic picks up sound from speakers (loopback)</li>
+          </ul>
+        </div>
+
+        <div class="visualizer-container">
+          <h3>Audio Visualizer</h3>
+          <canvas id="visualizer" width="584" height="200"></canvas>
+          <div id="volume-meter" class="volume-meter">
+            <div id="volume-bar" class="volume-bar"></div>
+          </div>
+          <div id="volume-text" class="volume-text">Volume: 0%</div>
+        </div>
+
+        <div class="debug-info">
+          <h3>Debug Info</h3>
+          <div id="debug" class="debug-text"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
