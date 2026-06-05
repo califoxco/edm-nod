@@ -226,26 +226,22 @@ body {
   text-align: center;
 }
 
-.snap-controls {
+.follow-controls {
   display: flex;
   align-items: center;
   gap: 12px;
   font-size: 13px;
 }
 
-.snap-controls label {
+.follow-controls label {
   display: flex;
   align-items: center;
   gap: 6px;
+  cursor: pointer;
 }
 
-.snap-controls select {
-  padding: 4px 8px;
-  background: var(--bg-tertiary);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: var(--text-primary);
-  font-size: 12px;
+.follow-controls input[type="checkbox"] {
+  cursor: pointer;
 }
 
 /* Timeline */

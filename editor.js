@@ -10,7 +10,7 @@
     audioFileName: '',
     audioBuffer: null,
     audioDuration: 0,
-    beats: [],  // { time: number, action: 'down' | 'up' }
+    beats: [],  // { time: number (perfect time), action: 'down' | 'up' }
 
     // Playback
     audioContext: null,
@@ -20,13 +20,15 @@
     pausedAt: 0,
 
     // Timeline
-    pixelsPerSecond: 100,  // Zoom level
-    snapToGrid: true,
-    gridDivision: 0.5,  // seconds
+    pixelsPerSecond: 100,
+    followPlayhead: true,
 
     // Canvas
     canvases: {},
-    contexts: {}
+    contexts: {},
+
+    // Timing
+    beatWindowMs: 500  // 500ms total window (250ms before, 250ms after perfect)
   };
 
   // Elements
@@ -54,13 +56,14 @@
     els.zoomIn = document.getElementById('zoom-in');
     els.zoomOut = document.getElementById('zoom-out');
     els.zoomLevel = document.getElementById('zoom-level');
-    els.snapToGrid = document.getElementById('snap-to-grid');
-    els.gridDivision = document.getElementById('grid-division');
+    els.followPlayhead = document.getElementById('follow-playhead');
     els.newLevel = document.getElementById('new-level');
     els.exportLevel = document.getElementById('export-level');
     els.downTrack = document.getElementById('down-track');
     els.upTrack = document.getElementById('up-track');
     els.playhead = document.getElementById('playhead');
+    els.timelineContainer = document.querySelector('.timeline-container');
+    els.timelineRuler = document.querySelector('.timeline-ruler');
 
     // Get canvases
     state.canvases.ruler = document.getElementById('ruler-canvas');
@@ -82,12 +85,12 @@
     els.seekBar.addEventListener('input', handleSeek);
     els.zoomIn.addEventListener('click', function() { zoom(1.2); });
     els.zoomOut.addEventListener('click', function() { zoom(0.8); });
-    els.snapToGrid.addEventListener('change', function() { state.snapToGrid = this.checked; });
-    els.gridDivision.addEventListener('change', function() { state.gridDivision = parseFloat(this.value); render(); });
+    els.followPlayhead.addEventListener('change', function() { state.followPlayhead = this.checked; });
     els.newLevel.addEventListener('click', newLevel);
     els.exportLevel.addEventListener('click', exportLevel);
     els.downTrack.addEventListener('click', handleTrackClick);
     els.upTrack.addEventListener('click', handleTrackClick);
+    els.timelineRuler.addEventListener('click', handleRulerClick);
 
     els.levelId.addEventListener('input', function() { state.levelId = this.value; });
     els.levelName.addEventListener('input', function() { state.levelName = this.value; });
@@ -118,8 +121,8 @@
         state.audioBuffer = buffer;
         state.audioDuration = buffer.duration;
 
-        els.audioInfo.textContent = file.name + ' (' + state.audioDuration.toFixed(2) + 's)';
-        els.duration.textContent = state.audioDuration.toFixed(2) + 's';
+        els.audioInfo.textContent = file.name + ' (' + formatTime(state.audioDuration) + ')';
+        els.duration.textContent = formatTime(state.audioDuration);
         els.seekBar.max = state.audioDuration;
 
         resizeCanvases();
@@ -182,23 +185,32 @@
     state.playbackStartTime = 0;
 
     els.playPause.textContent = '▶ Play';
-    els.currentTime.textContent = '0.00s';
+    els.currentTime.textContent = formatTime(0);
     els.seekBar.value = 0;
-    els.playhead.style.left = '0px';
+    updatePlayheadPosition(0);
   }
 
   function handleSeek(e) {
     var time = parseFloat(e.target.value);
+    seekToTime(time);
+  }
 
-    if (state.isPlaying) {
+  function seekToTime(time) {
+    var wasPlaying = state.isPlaying;
+
+    if (wasPlaying) {
       pausePlayback();
-      state.pausedAt = time;
-      startPlayback();
-    } else {
-      state.pausedAt = time;
     }
 
-    updatePlayhead();
+    state.pausedAt = time;
+
+    if (wasPlaying) {
+      startPlayback();
+    } else {
+      updatePlayheadPosition(time);
+      els.currentTime.textContent = formatTime(time);
+      els.seekBar.value = time;
+    }
   }
 
   function updatePlayhead() {
@@ -211,33 +223,52 @@
       return;
     }
 
-    els.currentTime.textContent = currentTime.toFixed(2) + 's';
+    els.currentTime.textContent = formatTime(currentTime);
     els.seekBar.value = currentTime;
+    updatePlayheadPosition(currentTime);
 
-    var x = timeToPixels(currentTime);
-    els.playhead.style.left = (80 + x) + 'px';  // Offset by track header width
+    // Auto-scroll if follow mode enabled
+    if (state.followPlayhead) {
+      var playheadX = timeToPixels(currentTime) + 80;
+      var containerWidth = els.timelineContainer.clientWidth;
+      var scrollLeft = els.timelineContainer.scrollLeft;
+
+      // Keep playhead in center third of screen
+      if (playheadX < scrollLeft + containerWidth * 0.33 || playheadX > scrollLeft + containerWidth * 0.66) {
+        els.timelineContainer.scrollLeft = playheadX - containerWidth / 2;
+      }
+    }
 
     requestAnimationFrame(updatePlayhead);
+  }
+
+  function updatePlayheadPosition(time) {
+    var x = timeToPixels(time);
+    els.playhead.style.left = (80 + x) + 'px';
   }
 
   // ============================================================================
   // TIMELINE INTERACTION
   // ============================================================================
 
-  function handleTrackClick(e) {
+  function handleRulerClick(e) {
     var rect = e.currentTarget.getBoundingClientRect();
     var x = e.clientX - rect.left;
     var time = pixelsToTime(x);
 
-    if (state.snapToGrid) {
-      time = Math.round(time / state.gridDivision) * state.gridDivision;
-    }
+    seekToTime(time);
+  }
+
+  function handleTrackClick(e) {
+    var rect = e.currentTarget.getBoundingClientRect();
+    var x = e.clientX - rect.left;
+    var time = pixelsToTime(x);  // This is the perfect time
 
     var action = e.currentTarget.dataset.action;
 
     // Check if clicking on existing beat (remove it)
     var existingIndex = state.beats.findIndex(function(beat) {
-      return beat.action === action && Math.abs(beat.time - time) < 0.1;
+      return beat.action === action && Math.abs(beat.time - time) < 0.25;
     });
 
     if (existingIndex !== -1) {
@@ -294,24 +325,34 @@
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     var duration = state.audioDuration || 60;
-    var interval = state.gridDivision;
 
     ctx.strokeStyle = '#404040';
-    ctx.fillStyle = '#a0a0a0';
-    ctx.font = '11px sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '12px monospace';
+    ctx.textAlign = 'center';
 
-    for (var t = 0; t <= duration; t += interval) {
+    // Draw timestamp every second
+    for (var t = 0; t <= duration; t += 1) {
       var x = timeToPixels(t);
 
-      // Draw tick
+      // Major tick
       ctx.beginPath();
-      ctx.moveTo(x, canvas.height - 10);
+      ctx.moveTo(x, canvas.height - 8);
       ctx.lineTo(x, canvas.height);
       ctx.stroke();
 
-      // Draw label every second
-      if (t % 1 === 0) {
-        ctx.fillText(t.toFixed(1) + 's', x + 4, 18);
+      // Label
+      ctx.fillText(formatTime(t), x, 14);
+
+      // Minor ticks (every 0.25s)
+      if (t < duration) {
+        for (var i = 0.25; i < 1; i += 0.25) {
+          var minorX = timeToPixels(t + i);
+          ctx.beginPath();
+          ctx.moveTo(minorX, canvas.height - 4);
+          ctx.lineTo(minorX, canvas.height);
+          ctx.stroke();
+        }
       }
     }
   }
@@ -364,43 +405,40 @@
     ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Draw grid
-    var duration = state.audioDuration || 60;
-    var interval = state.gridDivision;
-
-    ctx.strokeStyle = '#2a2a2a';
-    ctx.lineWidth = 1;
-
-    for (var t = 0; t <= duration; t += interval) {
-      var x = timeToPixels(t);
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, canvas.height);
-      ctx.stroke();
-    }
-
-    // Draw beats
+    // Draw beats as rectangles
     var color = action === 'down' ? '#ff4466' : '#00ff88';
-    ctx.fillStyle = color;
+    var windowSeconds = state.beatWindowMs / 1000;  // 0.5 seconds
+    var halfWindow = windowSeconds / 2;  // 0.25 seconds
 
     state.beats.filter(function(beat) {
       return beat.action === action;
     }).forEach(function(beat) {
-      var x = timeToPixels(beat.time);
-      var width = 8;
-      var height = canvas.height - 20;
-      var y = 10;
+      var perfectTime = beat.time;
+      var startTime = perfectTime - halfWindow;
+      var endTime = perfectTime + halfWindow;
 
-      ctx.fillRect(x - width / 2, y, width, height);
+      var startX = timeToPixels(startTime);
+      var endX = timeToPixels(endTime);
+      var width = endX - startX;
 
-      // Draw diamond marker
-      ctx.beginPath();
-      ctx.moveTo(x, y - 8);
-      ctx.lineTo(x + 6, y);
-      ctx.lineTo(x, y + 8);
-      ctx.lineTo(x - 6, y);
-      ctx.closePath();
-      ctx.fill();
+      // Draw rectangle for the entire window
+      ctx.fillStyle = color + '40';  // Semi-transparent
+      ctx.fillRect(startX, 10, width, canvas.height - 20);
+
+      // Draw perfect time marker in center
+      var perfectX = timeToPixels(perfectTime);
+      ctx.fillStyle = color;
+      ctx.fillRect(perfectX - 2, 5, 4, canvas.height - 10);
+
+      // Draw border
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(startX, 10, width, canvas.height - 20);
+
+      // Draw time label
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '11px monospace';
+      ctx.fillText(formatTime(perfectTime), perfectX + 6, 25);
     });
   }
 
@@ -414,6 +452,12 @@
 
   function pixelsToTime(pixels) {
     return pixels / state.pixelsPerSecond;
+  }
+
+  function formatTime(seconds) {
+    var mins = Math.floor(seconds / 60);
+    var secs = seconds % 60;
+    return mins + ':' + (secs < 10 ? '0' : '') + secs.toFixed(2);
   }
 
   function updateStats() {
@@ -471,13 +515,16 @@
       return;
     }
 
-    // Create level JSON
+    var audioExt = state.audioFileName.split('.').pop();
+
+    // Create level JSON with timing window info
     var levelData = {
       id: state.levelId,
       name: state.levelName,
       bpm: state.bpm,
       duration: state.audioDuration,
-      audioFile: 'audio.' + state.audioFileName.split('.').pop(),
+      audioFile: 'audio.' + audioExt,
+      beatWindowMs: state.beatWindowMs,  // Include timing window in export
       beatPattern: state.beats.map(function(beat) {
         return {
           time: parseFloat(beat.time.toFixed(3)),
@@ -488,13 +535,10 @@
 
     var levelJson = JSON.stringify(levelData, null, 2);
 
-    // Create zip file using JSZip (we'll need to include this library)
-    // For now, let's download separately
     downloadFile('level.json', levelJson, 'application/json');
 
-    // Also provide instructions for the audio file
     setTimeout(function() {
-      alert('Download complete!\n\nNext steps:\n1. Rename your audio file to: audio.' + state.audioFileName.split('.').pop() + '\n2. Create a folder: assets/' + state.levelId + '/\n3. Put level.json and the audio file in that folder\n4. Drop the folder into your game repo');
+      alert('Download complete!\n\nNext steps:\n1. Rename your audio file to: audio.' + audioExt + '\n2. Create a folder: assets/' + state.levelId + '/\n3. Put level.json and the audio file in that folder\n4. Drop the folder into your game repo');
     }, 100);
   }
 

@@ -31,6 +31,7 @@
       bpm: 30,
       duration: 60,
       audioFile: null,
+      beatWindowMs: 500,  // 500ms total window (250ms before/after perfect time)
       beatPattern: [
         // 30 BPM = one beat every 2 seconds, alternating down/up
         { time: 2.0, action: 'down' },
@@ -219,14 +220,24 @@
     if (state.activeArrow.action === action) {
       var timeDiff = Math.abs(state.currentTime - state.activeArrow.time);
 
-      if (timeDiff <= CONFIG.timingWindows.perfect / 1000) {
+      // Get level-specific timing window
+      var level = LEVELS[state.selectedLevel];
+      var beatWindow = (level.beatWindowMs || 500) / 1000;  // Convert to seconds
+      var halfWindow = beatWindow / 2;  // 0.25 seconds
+
+      // Perfect = within 25% of half window (±62.5ms for 500ms window)
+      // Good = within full half window (±250ms for 500ms window)
+      var perfectWindow = halfWindow * 0.25;
+      var goodWindow = halfWindow;
+
+      if (timeDiff <= perfectWindow) {
         // Perfect hit
         scoreHit('perfect');
-      } else if (timeDiff <= CONFIG.timingWindows.good / 1000) {
+      } else if (timeDiff <= goodWindow) {
         // Good hit
         scoreHit('good');
       } else {
-        // Miss (too late)
+        // Miss (outside window)
         scoreMiss();
       }
 
@@ -323,15 +334,18 @@
     if (state.beatIndex < level.beatPattern.length) {
       var nextBeat = level.beatPattern[state.beatIndex];
       var timeUntilBeat = nextBeat.time - state.currentTime;
-      var displayWindow = CONFIG.arrowDisplayTime / 1000; // Convert to seconds
 
-      // Show arrow if we're within the display window
-      if (timeUntilBeat <= displayWindow && !state.activeArrow) {
+      // Use level's beat window (default 500ms)
+      var beatWindow = (level.beatWindowMs || 500) / 1000; // Convert to seconds
+      var halfWindow = beatWindow / 2;  // 250ms before perfect time
+
+      // Show arrow when we enter the window (250ms before perfect time)
+      if (timeUntilBeat <= halfWindow && !state.activeArrow) {
         state.activeArrow = nextBeat;
       }
 
-      // Check if we missed the arrow (passed the good timing window)
-      if (state.activeArrow && state.currentTime > state.activeArrow.time + CONFIG.timingWindows.good / 1000) {
+      // Check if we missed the arrow (passed the window after perfect time)
+      if (state.activeArrow && state.currentTime > state.activeArrow.time + halfWindow) {
         scoreMiss();
         state.activeArrow = null;
         state.beatIndex++;
