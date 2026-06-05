@@ -64,6 +64,26 @@
         { time: 29.0, action: 'up' },
         { time: 30.0, action: 'down' }
       ]
+    },
+    'pedro1': {
+      id: 'pedro1',
+      name: 'Pedro',
+      bpm: 124,
+      duration: 144.56256235827664,
+      audioFile: 'assets/pedro1/audio.wav',
+      beatWindowMs: 500,
+      beatPattern: [
+        { time: 5.08, action: 'down' },
+        { time: 5.42, action: 'up' },
+        { time: 27.23, action: 'down' },
+        { time: 27.46, action: 'up' },
+        { time: 27.67, action: 'down' },
+        { time: 27.89, action: 'up' },
+        { time: 28.1, action: 'down' },
+        { time: 28.3, action: 'up' },
+        { time: 28.56, action: 'down' },
+        { time: 28.83, action: 'up' }
+      ]
     }
   };
 
