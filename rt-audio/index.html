@@ -3,51 +3,52 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=600, height=600, initial-scale=1.0, user-scalable=no">
-  <meta name="description" content="Real-time Audio Capture Test">
-  <title>RT Audio Test</title>
+  <meta name="description" content="Camera Capture Test for Meta Ray-Ban">
+  <title>Camera Test</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div id="app">
     <div class="screen">
       <header class="header">
-        <h1>Real-Time Audio Test</h1>
+        <h1>Camera Capture Test</h1>
       </header>
       <div class="content">
         <div class="status-container">
           <div id="status" class="status">Not Started</div>
-          <div id="method" class="method"></div>
+          <div id="camera-info" class="camera-info"></div>
         </div>
 
         <div class="controls">
-          <button id="start-mic" class="btn">Test Microphone Input</button>
-          <button id="start-display" class="btn btn-primary">Test System Audio (Desktop)</button>
-          <button id="start-tab" class="btn">Test Tab Audio Capture</button>
-          <button id="stop" class="btn" disabled>Stop</button>
+          <button id="start-camera" class="btn btn-primary">Start Camera</button>
+          <button id="take-photo" class="btn" disabled>Take Photo</button>
+          <button id="stop-camera" class="btn" disabled>Stop Camera</button>
+        </div>
+
+        <div class="preview-container">
+          <h3>Live Preview</h3>
+          <video id="camera-preview" autoplay playsinline></video>
+        </div>
+
+        <div class="photo-container">
+          <h3>Captured Photo</h3>
+          <canvas id="photo-canvas"></canvas>
+          <button id="download-photo" class="btn-small" style="display:none;">Download Photo</button>
         </div>
 
         <div class="info-box">
-          <h3>What This Tests:</h3>
+          <h3>Testing:</h3>
           <ul>
-            <li><strong>Microphone:</strong> Captures ambient sound through device mic</li>
-            <li><strong>System Audio (Desktop):</strong> Uses getDisplayMedia to try capturing system audio</li>
-            <li><strong>Tab Audio:</strong> Captures audio playing in browser tab</li>
-            <li><strong>Note:</strong> Mobile browsers typically block system audio access</li>
+            <li><strong>Camera Access:</strong> Can the webapp access device camera?</li>
+            <li><strong>Live Preview:</strong> Can we show real-time camera feed?</li>
+            <li><strong>Take Photo:</strong> Can we capture still images?</li>
+            <li><strong>Camera Selection:</strong> Front vs back camera</li>
           </ul>
-        </div>
-
-        <div class="visualizer-container">
-          <h3>Audio Visualizer</h3>
-          <canvas id="visualizer" width="584" height="200"></canvas>
-          <div id="volume-meter" class="volume-meter">
-            <div id="volume-bar" class="volume-bar"></div>
-          </div>
-          <div id="volume-text" class="volume-text">Volume: 0%</div>
         </div>
 
         <div class="debug-info">
           <h3>Debug Info</h3>
-          <div id="debug" class="debug-text"></div>
+          <div id="debug" class="debug-text">Ready to test camera...</div>
         </div>
       </div>
     </div>

@@ -2,11 +2,9 @@
   'use strict';
 
   var state = {
-    audioContext: null,
-    analyser: null,
-    microphone: null,
-    animationId: null,
-    isRunning: false
+    stream: null,
+    currentCamera: 'environment', // 'user' (front) or 'environment' (back)
+    availableCameras: []
   };
 
   var els = {};
@@ -17,237 +15,134 @@
 
   function init() {
     els.status = document.getElementById('status');
-    els.method = document.getElementById('method');
-    els.startMic = document.getElementById('start-mic');
-    els.startDisplay = document.getElementById('start-display');
-    els.startTab = document.getElementById('start-tab');
-    els.stop = document.getElementById('stop');
-    els.visualizer = document.getElementById('visualizer');
-    els.volumeMeter = document.getElementById('volume-bar');
-    els.volumeText = document.getElementById('volume-text');
+    els.cameraInfo = document.getElementById('camera-info');
+    els.startCamera = document.getElementById('start-camera');
+    els.takePhoto = document.getElementById('take-photo');
+    els.stopCamera = document.getElementById('stop-camera');
+    els.preview = document.getElementById('camera-preview');
+    els.photoCanvas = document.getElementById('photo-canvas');
+    els.downloadPhoto = document.getElementById('download-photo');
     els.debug = document.getElementById('debug');
 
-    els.startMic.addEventListener('click', startMicrophone);
-    els.startDisplay.addEventListener('click', startDisplayMedia);
-    els.startTab.addEventListener('click', startTabCapture);
-    els.stop.addEventListener('click', stopCapture);
+    els.startCamera.addEventListener('click', startCamera);
+    els.takePhoto.addEventListener('click', takePhoto);
+    els.stopCamera.addEventListener('click', stopCamera);
+    els.downloadPhoto.addEventListener('click', downloadPhoto);
 
-    updateDebug('Ready to test audio capture\n\nBrowser: ' + navigator.userAgent);
+    updateDebug('Ready to test camera\nBrowser: ' + navigator.userAgent);
+    enumerateCameras();
   }
 
   // ============================================================================
-  // AUDIO CAPTURE METHODS
+  // CAMERA ENUMERATION
   // ============================================================================
 
-  function startMicrophone() {
-    updateStatus('Requesting microphone access...', 'getUserMedia API');
-    updateDebug('Method: Microphone\nRequesting permission...');
-
-    navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false
-      }
-    })
-    .then(function(stream) {
-      setupAudioAnalyzer(stream, 'Microphone (getUserMedia)');
-    })
-    .catch(function(err) {
-      updateStatus('Microphone access denied', 'Error');
-      updateDebug('ERROR: ' + err.name + '\n' + err.message + '\n\nMake sure to allow microphone access when prompted.');
-      console.error('Microphone error:', err);
-    });
-  }
-
-  function startDisplayMedia() {
-    updateStatus('Requesting screen/system audio...', 'getDisplayMedia API');
-    updateDebug('Method: Display Media (System Audio)\nAttempting to capture system audio...\n\nNote: This works on desktop Chrome/Edge.\nMobile browsers typically block this.\nYou may need to select "Share system audio".');
-
-    if (!navigator.mediaDevices.getDisplayMedia) {
-      updateStatus('Not supported', 'Error');
-      updateDebug('ERROR: getDisplayMedia not supported in this browser.\nThis API is typically only available on desktop browsers.');
+  function enumerateCameras() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+      updateDebug('ERROR: enumerateDevices not supported');
       return;
     }
 
-    navigator.mediaDevices.getDisplayMedia({
-      video: true,
-      audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
-        systemAudio: 'include'  // Try to include system audio
-      }
-    })
-    .then(function(stream) {
-      var audioTracks = stream.getAudioTracks();
-      updateDebug('Display media granted!\nAudio tracks: ' + audioTracks.length + '\nTracks: ' + JSON.stringify(audioTracks.map(function(t) { return t.label; }), null, 2));
+    navigator.mediaDevices.enumerateDevices()
+      .then(function(devices) {
+        state.availableCameras = devices.filter(function(device) {
+          return device.kind === 'videoinput';
+        });
 
-      if (audioTracks.length === 0) {
-        updateStatus('No audio in capture', 'Warning');
-        updateDebug('WARNING: Screen captured but NO AUDIO TRACKS.\n\nMake sure to:\n1. Check "Share system audio" or "Share tab audio"\n2. Some browsers only support tab audio, not system audio\n3. Mobile browsers typically don\'t support this at all');
-        stream.getTracks().forEach(function(track) { track.stop(); });
-        return;
-      }
-
-      setupAudioAnalyzer(stream, 'Display Media (System/Tab Audio)');
-    })
-    .catch(function(err) {
-      updateStatus('Display capture denied', 'Error');
-      updateDebug('ERROR: ' + err.name + '\n' + err.message + '\n\nPossible reasons:\n- User denied permission\n- Mobile browser (not supported)\n- Browser doesn\'t support system audio capture');
-      console.error('Display media error:', err);
-    });
+        updateDebug('Found ' + state.availableCameras.length + ' camera(s):\n' +
+          state.availableCameras.map(function(cam, i) {
+            return (i + 1) + '. ' + (cam.label || 'Camera ' + (i + 1)) + '\n   ID: ' + cam.deviceId;
+          }).join('\n'));
+      })
+      .catch(function(err) {
+        updateDebug('ERROR enumerating cameras: ' + err.message);
+      });
   }
 
-  function startTabCapture() {
-    updateStatus('Requesting tab audio...', 'getDisplayMedia (Tab Audio)');
-    updateDebug('Method: Tab Audio Capture\nThis captures audio from the current browser tab.\n\nPlay some audio in this tab to test.');
+  // ============================================================================
+  // CAMERA CONTROL
+  // ============================================================================
 
-    if (!navigator.mediaDevices.getDisplayMedia) {
-      updateStatus('Not supported', 'Error');
-      updateDebug('ERROR: getDisplayMedia not supported');
+  function startCamera() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      updateStatus('Camera API not supported', '');
+      updateDebug('ERROR: getUserMedia not available in this browser');
       return;
     }
 
-    navigator.mediaDevices.getDisplayMedia({
-      video: false,
-      audio: true
-    })
-    .then(function(stream) {
-      setupAudioAnalyzer(stream, 'Tab Audio Capture');
-    })
-    .catch(function(err) {
-      updateStatus('Tab capture denied', 'Error');
-      updateDebug('ERROR: ' + err.name + '\n' + err.message);
-      console.error('Tab capture error:', err);
-    });
+    updateStatus('Requesting camera access...', '');
+    updateDebug('Requesting camera permission...\nFacing: ' + state.currentCamera);
+
+    var constraints = {
+      video: {
+        facingMode: state.currentCamera,
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
+    };
+
+    navigator.mediaDevices.getUserMedia(constraints)
+      .then(function(stream) {
+        state.stream = stream;
+
+        // Get actual camera info
+        var videoTrack = stream.getVideoTracks()[0];
+        var settings = videoTrack.getSettings();
+
+        updateStatus('Camera Active', '');
+        els.cameraInfo.textContent = videoTrack.label;
+        updateDebug('Camera started!\n' +
+          'Label: ' + videoTrack.label + '\n' +
+          'Resolution: ' + settings.width + 'x' + settings.height + '\n' +
+          'Facing: ' + (settings.facingMode || 'unknown') + '\n' +
+          'Frame rate: ' + (settings.frameRate || 'unknown') + ' fps\n' +
+          'Device ID: ' + settings.deviceId);
+
+        // Display preview
+        els.preview.srcObject = stream;
+
+        // Enable controls
+        els.startCamera.disabled = true;
+        els.takePhoto.disabled = false;
+        els.stopCamera.disabled = false;
+      })
+      .catch(function(err) {
+        updateStatus('Camera access denied', '');
+        updateDebug('ERROR: ' + err.name + '\n' + err.message + '\n\n' +
+          'Possible reasons:\n' +
+          '- Permission denied by user\n' +
+          '- Camera in use by another app\n' +
+          '- Camera not available on this device\n' +
+          '- Browser doesn\'t support camera access');
+        console.error('Camera error:', err);
+      });
   }
 
-  function setupAudioAnalyzer(stream, method) {
-    var audioTracks = stream.getAudioTracks();
+  function takePhoto() {
+    if (!state.stream) return;
 
-    updateDebug('SUCCESS: Audio stream acquired!\nMethod: ' + method + '\nStream ID: ' + stream.id + '\nAudio tracks: ' + audioTracks.length + '\nTrack details: ' + JSON.stringify(audioTracks.map(function(t) {
-      return { label: t.label, enabled: t.enabled, muted: t.muted };
-    }), null, 2));
+    var videoTrack = state.stream.getVideoTracks()[0];
+    var settings = videoTrack.getSettings();
 
-    // Create audio context
-    state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    state.analyser = state.audioContext.createAnalyser();
-    state.analyser.fftSize = 2048;
+    // Set canvas size to match video
+    els.photoCanvas.width = settings.width || 640;
+    els.photoCanvas.height = settings.height || 480;
 
-    // Connect stream
-    state.microphone = state.audioContext.createMediaStreamSource(stream);
-    state.microphone.connect(state.analyser);
+    // Draw current frame
+    var ctx = els.photoCanvas.getContext('2d');
+    ctx.drawImage(els.preview, 0, 0, els.photoCanvas.width, els.photoCanvas.height);
 
-    // Store stream for cleanup
-    state.stream = stream;
+    // Show captured photo
+    els.photoCanvas.classList.add('has-photo');
+    els.downloadPhoto.style.display = 'block';
 
-    updateStatus('Capturing: ' + method, method);
-    updateDebug('Audio context created\nSample rate: ' + state.audioContext.sampleRate + 'Hz\nFFT size: ' + state.analyser.fftSize + '\n\nIf you see audio visualization, it\'s working!');
-
-    state.isRunning = true;
-    els.startMic.disabled = true;
-    els.startDisplay.disabled = true;
-    els.startTab.disabled = true;
-    els.stop.disabled = false;
-
-    visualize();
+    updateDebug('Photo captured!\n' +
+      'Size: ' + els.photoCanvas.width + 'x' + els.photoCanvas.height + '\n' +
+      'Timestamp: ' + new Date().toLocaleString());
   }
 
-  // ============================================================================
-  // VISUALIZATION
-  // ============================================================================
-
-  function visualize() {
-    if (!state.isRunning) return;
-
-    var canvas = els.visualizer;
-    var ctx = canvas.getContext('2d');
-    var bufferLength = state.analyser.frequencyBinCount;
-    var dataArray = new Uint8Array(bufferLength);
-
-    function draw() {
-      if (!state.isRunning) return;
-
-      state.animationId = requestAnimationFrame(draw);
-
-      // Get frequency data
-      state.analyser.getByteFrequencyData(dataArray);
-
-      // Calculate volume (average amplitude)
-      var sum = 0;
-      for (var i = 0; i < bufferLength; i++) {
-        sum += dataArray[i];
-      }
-      var average = sum / bufferLength;
-      var volume = Math.round((average / 255) * 100);
-
-      // Update volume meter
-      els.volumeMeter.style.width = volume + '%';
-      els.volumeText.textContent = 'Volume: ' + volume + '%';
-
-      // Draw waveform
-      ctx.fillStyle = '#000000';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = '#00d4ff';
-      ctx.beginPath();
-
-      var sliceWidth = canvas.width / bufferLength;
-      var x = 0;
-
-      for (var i = 0; i < bufferLength; i++) {
-        var v = dataArray[i] / 255.0;
-        var y = v * canvas.height;
-
-        if (i === 0) {
-          ctx.moveTo(x, y);
-        } else {
-          ctx.lineTo(x, y);
-        }
-
-        x += sliceWidth;
-      }
-
-      ctx.lineTo(canvas.width, canvas.height / 2);
-      ctx.stroke();
-
-      // Draw frequency bars
-      ctx.fillStyle = '#00ff88';
-      var barWidth = (canvas.width / bufferLength) * 2.5;
-      var barHeight;
-      x = 0;
-
-      for (var i = 0; i < bufferLength; i++) {
-        barHeight = (dataArray[i] / 255) * canvas.height * 0.8;
-
-        ctx.fillStyle = 'rgb(' +
-          Math.round((dataArray[i] / 255) * 100 + 155) + ',' +
-          Math.round(200 - (dataArray[i] / 255) * 100) + ',' +
-          Math.round((dataArray[i] / 255) * 200) + ')';
-
-        ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
-
-        x += barWidth + 1;
-      }
-    }
-
-    draw();
-  }
-
-  // ============================================================================
-  // CONTROLS
-  // ============================================================================
-
-  function stopCapture() {
-    state.isRunning = false;
-
-    if (state.animationId) {
-      cancelAnimationFrame(state.animationId);
-      state.animationId = null;
-    }
-
+  function stopCamera() {
     if (state.stream) {
       state.stream.getTracks().forEach(function(track) {
         track.stop();
@@ -255,46 +150,42 @@
       state.stream = null;
     }
 
-    if (state.microphone) {
-      state.microphone.disconnect();
-      state.microphone = null;
-    }
+    els.preview.srcObject = null;
 
-    if (state.audioContext) {
-      state.audioContext.close();
-      state.audioContext = null;
-    }
+    updateStatus('Camera Stopped', '');
+    updateDebug('Camera stopped');
 
-    updateStatus('Stopped', '');
-    updateDebug('Audio capture stopped');
+    els.startCamera.disabled = false;
+    els.takePhoto.disabled = true;
+    els.stopCamera.disabled = true;
+  }
 
-    els.startMic.disabled = false;
-    els.startDisplay.disabled = false;
-    els.startTab.disabled = false;
-    els.stop.disabled = true;
+  function downloadPhoto() {
+    els.photoCanvas.toBlob(function(blob) {
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = 'camera-test-' + Date.now() + '.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
 
-    // Clear visualizer
-    var canvas = els.visualizer;
-    var ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#000000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    els.volumeMeter.style.width = '0%';
-    els.volumeText.textContent = 'Volume: 0%';
+      updateDebug('Photo downloaded!');
+    });
   }
 
   // ============================================================================
   // UI HELPERS
   // ============================================================================
 
-  function updateStatus(status, method) {
+  function updateStatus(status, info) {
     els.status.textContent = status;
-    els.method.textContent = method;
   }
 
   function updateDebug(message) {
     var timestamp = new Date().toLocaleTimeString();
-    els.debug.textContent = '[' + timestamp + '] ' + message;
+    els.debug.textContent = '[' + timestamp + ']\n' + message;
   }
 
   // ============================================================================

@@ -63,35 +63,36 @@ html, body {
 
 .status-container {
   text-align: center;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .status {
   font-size: 18px;
   font-weight: 600;
   color: var(--accent-primary);
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
-.method {
-  font-size: 14px;
+.camera-info {
+  font-size: 12px;
   color: var(--text-secondary);
 }
 
 .controls {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   justify-content: center;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
 .btn {
-  padding: 12px 24px;
+  padding: 10px 20px;
   background: var(--bg-card);
   border: 2px solid var(--bg-card);
   border-radius: 8px;
   color: var(--text-primary);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
@@ -112,17 +113,75 @@ html, body {
   border-color: var(--accent-primary);
 }
 
+.btn-small {
+  padding: 6px 12px;
+  font-size: 11px;
+  margin-top: 8px;
+  background: var(--accent-secondary);
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.preview-container {
+  background: var(--bg-card);
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+.preview-container h3 {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+#camera-preview {
+  width: 100%;
+  max-height: 300px;
+  background: #000;
+  border-radius: 4px;
+  display: block;
+}
+
+.photo-container {
+  background: var(--bg-card);
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.photo-container h3 {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+#photo-canvas {
+  max-width: 100%;
+  max-height: 300px;
+  background: #000;
+  border-radius: 4px;
+  display: none;
+}
+
+#photo-canvas.has-photo {
+  display: block;
+}
+
 .info-box {
   background: var(--bg-card);
-  padding: 16px;
+  padding: 12px;
   border-radius: 8px;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .info-box h3 {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-secondary);
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .info-box ul {
@@ -131,10 +190,10 @@ html, body {
 }
 
 .info-box li {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
-  margin-bottom: 8px;
-  padding-left: 16px;
+  margin-bottom: 6px;
+  padding-left: 12px;
   position: relative;
 }
 
@@ -149,67 +208,25 @@ html, body {
   color: var(--text-primary);
 }
 
-.visualizer-container {
-  background: var(--bg-card);
-  padding: 16px;
-  border-radius: 8px;
-  margin-bottom: 24px;
-}
-
-.visualizer-container h3 {
-  font-size: 14px;
-  color: var(--text-secondary);
-  margin-bottom: 12px;
-}
-
-#visualizer {
-  width: 100%;
-  height: 200px;
-  background: #000;
-  border-radius: 4px;
-  margin-bottom: 16px;
-}
-
-.volume-meter {
-  width: 100%;
-  height: 32px;
-  background: var(--bg-secondary);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: 8px;
-}
-
-.volume-bar {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent-secondary), var(--accent-primary), var(--warning), var(--danger));
-  width: 0%;
-  transition: width 0.05s ease-out;
-}
-
-.volume-text {
-  font-size: 14px;
-  color: var(--text-secondary);
-  font-family: 'Courier New', monospace;
-  text-align: center;
-}
-
 .debug-info {
   background: var(--bg-card);
-  padding: 16px;
+  padding: 12px;
   border-radius: 8px;
 }
 
 .debug-info h3 {
-  font-size: 14px;
+  font-size: 13px;
   color: var(--text-secondary);
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .debug-text {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
   font-family: 'Courier New', monospace;
-  line-height: 1.6;
+  line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-all;
+  max-height: 200px;
+  overflow-y: auto;
 }
