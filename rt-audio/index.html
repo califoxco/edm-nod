@@ -20,16 +20,19 @@
         </div>
 
         <div class="controls">
-          <button id="start-mic" class="btn btn-primary">Test Microphone Input</button>
+          <button id="start-mic" class="btn">Test Microphone Input</button>
+          <button id="start-display" class="btn btn-primary">Test System Audio (Desktop)</button>
+          <button id="start-tab" class="btn">Test Tab Audio Capture</button>
           <button id="stop" class="btn" disabled>Stop</button>
         </div>
 
         <div class="info-box">
           <h3>What This Tests:</h3>
           <ul>
-            <li><strong>Microphone:</strong> Can capture ambient sound through device mic</li>
-            <li><strong>Limitation:</strong> Browser cannot access system audio (music playing on device)</li>
-            <li><strong>Workaround:</strong> Mic picks up sound from speakers (loopback)</li>
+            <li><strong>Microphone:</strong> Captures ambient sound through device mic</li>
+            <li><strong>System Audio (Desktop):</strong> Uses getDisplayMedia to try capturing system audio</li>
+            <li><strong>Tab Audio:</strong> Captures audio playing in browser tab</li>
+            <li><strong>Note:</strong> Mobile browsers typically block system audio access</li>
           </ul>
         </div>
 

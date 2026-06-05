@@ -19,6 +19,8 @@
     els.status = document.getElementById('status');
     els.method = document.getElementById('method');
     els.startMic = document.getElementById('start-mic');
+    els.startDisplay = document.getElementById('start-display');
+    els.startTab = document.getElementById('start-tab');
     els.stop = document.getElementById('stop');
     els.visualizer = document.getElementById('visualizer');
     els.volumeMeter = document.getElementById('volume-bar');
@@ -26,18 +28,20 @@
     els.debug = document.getElementById('debug');
 
     els.startMic.addEventListener('click', startMicrophone);
+    els.startDisplay.addEventListener('click', startDisplayMedia);
+    els.startTab.addEventListener('click', startTabCapture);
     els.stop.addEventListener('click', stopCapture);
 
-    updateDebug('Ready to test audio capture');
+    updateDebug('Ready to test audio capture\n\nBrowser: ' + navigator.userAgent);
   }
 
   // ============================================================================
-  // MICROPHONE CAPTURE
+  // AUDIO CAPTURE METHODS
   // ============================================================================
 
   function startMicrophone() {
     updateStatus('Requesting microphone access...', 'getUserMedia API');
-    updateDebug('Requesting microphone permission...');
+    updateDebug('Method: Microphone\nRequesting permission...');
 
     navigator.mediaDevices.getUserMedia({
       audio: {
@@ -47,31 +51,107 @@
       }
     })
     .then(function(stream) {
-      updateDebug('Microphone access granted!\nStream: ' + stream.id);
-
-      // Create audio context
-      state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      state.analyser = state.audioContext.createAnalyser();
-      state.analyser.fftSize = 2048;
-
-      // Connect microphone
-      state.microphone = state.audioContext.createMediaStreamSource(stream);
-      state.microphone.connect(state.analyser);
-
-      updateStatus('Capturing audio from microphone', 'getUserMedia API');
-      updateDebug('Audio context created\nSample rate: ' + state.audioContext.sampleRate + 'Hz\nFFT size: ' + state.analyser.fftSize);
-
-      state.isRunning = true;
-      els.startMic.disabled = true;
-      els.stop.disabled = false;
-
-      visualize();
+      setupAudioAnalyzer(stream, 'Microphone (getUserMedia)');
     })
     .catch(function(err) {
       updateStatus('Microphone access denied', 'Error');
       updateDebug('ERROR: ' + err.name + '\n' + err.message + '\n\nMake sure to allow microphone access when prompted.');
       console.error('Microphone error:', err);
     });
+  }
+
+  function startDisplayMedia() {
+    updateStatus('Requesting screen/system audio...', 'getDisplayMedia API');
+    updateDebug('Method: Display Media (System Audio)\nAttempting to capture system audio...\n\nNote: This works on desktop Chrome/Edge.\nMobile browsers typically block this.\nYou may need to select "Share system audio".');
+
+    if (!navigator.mediaDevices.getDisplayMedia) {
+      updateStatus('Not supported', 'Error');
+      updateDebug('ERROR: getDisplayMedia not supported in this browser.\nThis API is typically only available on desktop browsers.');
+      return;
+    }
+
+    navigator.mediaDevices.getDisplayMedia({
+      video: true,
+      audio: {
+        echoCancellation: false,
+        noiseSuppression: false,
+        autoGainControl: false,
+        systemAudio: 'include'  // Try to include system audio
+      }
+    })
+    .then(function(stream) {
+      var audioTracks = stream.getAudioTracks();
+      updateDebug('Display media granted!\nAudio tracks: ' + audioTracks.length + '\nTracks: ' + JSON.stringify(audioTracks.map(function(t) { return t.label; }), null, 2));
+
+      if (audioTracks.length === 0) {
+        updateStatus('No audio in capture', 'Warning');
+        updateDebug('WARNING: Screen captured but NO AUDIO TRACKS.\n\nMake sure to:\n1. Check "Share system audio" or "Share tab audio"\n2. Some browsers only support tab audio, not system audio\n3. Mobile browsers typically don\'t support this at all');
+        stream.getTracks().forEach(function(track) { track.stop(); });
+        return;
+      }
+
+      setupAudioAnalyzer(stream, 'Display Media (System/Tab Audio)');
+    })
+    .catch(function(err) {
+      updateStatus('Display capture denied', 'Error');
+      updateDebug('ERROR: ' + err.name + '\n' + err.message + '\n\nPossible reasons:\n- User denied permission\n- Mobile browser (not supported)\n- Browser doesn\'t support system audio capture');
+      console.error('Display media error:', err);
+    });
+  }
+
+  function startTabCapture() {
+    updateStatus('Requesting tab audio...', 'getDisplayMedia (Tab Audio)');
+    updateDebug('Method: Tab Audio Capture\nThis captures audio from the current browser tab.\n\nPlay some audio in this tab to test.');
+
+    if (!navigator.mediaDevices.getDisplayMedia) {
+      updateStatus('Not supported', 'Error');
+      updateDebug('ERROR: getDisplayMedia not supported');
+      return;
+    }
+
+    navigator.mediaDevices.getDisplayMedia({
+      video: false,
+      audio: true
+    })
+    .then(function(stream) {
+      setupAudioAnalyzer(stream, 'Tab Audio Capture');
+    })
+    .catch(function(err) {
+      updateStatus('Tab capture denied', 'Error');
+      updateDebug('ERROR: ' + err.name + '\n' + err.message);
+      console.error('Tab capture error:', err);
+    });
+  }
+
+  function setupAudioAnalyzer(stream, method) {
+    var audioTracks = stream.getAudioTracks();
+
+    updateDebug('SUCCESS: Audio stream acquired!\nMethod: ' + method + '\nStream ID: ' + stream.id + '\nAudio tracks: ' + audioTracks.length + '\nTrack details: ' + JSON.stringify(audioTracks.map(function(t) {
+      return { label: t.label, enabled: t.enabled, muted: t.muted };
+    }), null, 2));
+
+    // Create audio context
+    state.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    state.analyser = state.audioContext.createAnalyser();
+    state.analyser.fftSize = 2048;
+
+    // Connect stream
+    state.microphone = state.audioContext.createMediaStreamSource(stream);
+    state.microphone.connect(state.analyser);
+
+    // Store stream for cleanup
+    state.stream = stream;
+
+    updateStatus('Capturing: ' + method, method);
+    updateDebug('Audio context created\nSample rate: ' + state.audioContext.sampleRate + 'Hz\nFFT size: ' + state.analyser.fftSize + '\n\nIf you see audio visualization, it\'s working!');
+
+    state.isRunning = true;
+    els.startMic.disabled = true;
+    els.startDisplay.disabled = true;
+    els.startTab.disabled = true;
+    els.stop.disabled = false;
+
+    visualize();
   }
 
   // ============================================================================
@@ -168,6 +248,13 @@
       state.animationId = null;
     }
 
+    if (state.stream) {
+      state.stream.getTracks().forEach(function(track) {
+        track.stop();
+      });
+      state.stream = null;
+    }
+
     if (state.microphone) {
       state.microphone.disconnect();
       state.microphone = null;
@@ -182,6 +269,8 @@
     updateDebug('Audio capture stopped');
 
     els.startMic.disabled = false;
+    els.startDisplay.disabled = false;
+    els.startTab.disabled = false;
     els.stop.disabled = true;
 
     // Clear visualizer
