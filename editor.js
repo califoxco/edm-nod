@@ -96,6 +96,15 @@
     els.levelName.addEventListener('input', function() { state.levelName = this.value; });
     els.levelBpm.addEventListener('input', function() { state.bpm = parseInt(this.value) || 124; });
 
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+      // Spacebar for play/pause (unless typing in input)
+      if (e.code === 'Space' && !isTypingInInput(e.target)) {
+        e.preventDefault();
+        togglePlayPause();
+      }
+    });
+
     // Resize canvases
     window.addEventListener('resize', resizeCanvases);
     resizeCanvases();
@@ -460,6 +469,10 @@
     var mins = Math.floor(seconds / 60);
     var secs = seconds % 60;
     return mins + ':' + (secs < 10 ? '0' : '') + secs.toFixed(2);
+  }
+
+  function isTypingInInput(target) {
+    return target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
   }
 
   function updateStats() {
