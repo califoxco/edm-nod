@@ -176,6 +176,9 @@
       state.orientation.lastBeta = state.orientation.beta;
       state.orientation.beta = event.beta;
 
+      // Always update debug display
+      updateDebugDisplay();
+
       // Detect nod gestures during gameplay
       if (state.gameActive) {
         detectNodGesture();

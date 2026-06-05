@@ -9,6 +9,14 @@
 </head>
 <body>
   <div id="app">
+    <!-- Global Debug HUD (always visible) -->
+    <div class="debug-hud">
+      <div class="debug-label">Beta</div>
+      <div id="beta-debug" class="debug-value">0°</div>
+      <div class="debug-label">Δ</div>
+      <div id="delta-debug" class="debug-value">0°</div>
+    </div>
+
     <!-- Menu Screen -->
     <div id="menu" class="screen">
       <header class="header">
@@ -20,9 +28,10 @@
           <div class="level-list">
             <button class="level-item focusable" data-action="select-level" data-level-id="test-level-1">
               <div class="level-name">Test Level</div>
-              <div class="level-meta">60s • 124 BPM</div>
+              <div class="level-meta">60s • 30 BPM</div>
             </button>
           </div>
+          <div class="version">v1.1</div>
         </div>
       </div>
     </div>
@@ -37,12 +46,6 @@
         <div class="combo-container">
           <div id="combo" class="combo-value"></div>
         </div>
-      </div>
-      <div class="debug-hud">
-        <div class="debug-label">Beta</div>
-        <div id="beta-debug" class="debug-value">0°</div>
-        <div class="debug-label">Δ</div>
-        <div id="delta-debug" class="debug-value">0°</div>
       </div>
       <div class="game-area">
         <canvas id="gameCanvas" width="600" height="600"></canvas>
