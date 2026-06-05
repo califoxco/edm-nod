@@ -298,13 +298,15 @@
 
   function resizeCanvases() {
     var duration = state.audioDuration || 60;
-    var width = timeToPixels(duration);
+    // Add 10% padding to the right
+    var width = timeToPixels(duration * 1.1);
 
     Object.keys(state.canvases).forEach(function(key) {
       var canvas = state.canvases[key];
       var container = canvas.parentElement;
 
-      canvas.width = Math.max(width, container.clientWidth);
+      // Set canvas to full timeline width (not clamped by container width)
+      canvas.width = width;
       canvas.height = container.clientHeight;
     });
   }
