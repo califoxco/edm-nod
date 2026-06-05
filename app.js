@@ -70,7 +70,7 @@
       name: 'Pedro',
       bpm: 124,
       duration: 144.56256235827664,
-      audioFile: 'assets/pedro1/audio.wav',
+      audioFile: 'assets/pedro1/audio.mp3',
       beatWindowMs: 500,
       beatPattern: [
         { time: 5.08, action: 'down' },
@@ -302,19 +302,54 @@
     // Take snapshot of current beta position as baseline
     state.orientation.baseBeta = state.orientation.beta;
 
-    // Load and play audio if available
+    var loadingOverlay = document.getElementById('loading-overlay');
+
+    // Load and preload audio if available
     if (level.audioFile) {
+      // Show loading overlay
+      if (loadingOverlay) loadingOverlay.classList.remove('hidden');
+
       state.audio = new Audio(level.audioFile);
-      state.audio.play().catch(function(err) {
-        console.error('Audio playback failed:', err);
-      });
+      state.audio.preload = 'auto';
+
+      // Wait for audio to be ready before starting game
+      var audioReady = false;
+
+      var startGameplay = function() {
+        if (audioReady) return;
+        audioReady = true;
+
+        // Hide loading overlay
+        if (loadingOverlay) loadingOverlay.classList.add('hidden');
+
+        // Start audio playback
+        if (state.audio) {
+          state.audio.play().catch(function(err) {
+            console.error('Audio playback failed:', err);
+          });
+        }
+
+        // Start game timer synchronized with audio
+        state.gameActive = true;
+        state.gameStartTime = performance.now();
+        state.beatIndex = 0;
+        gameLoop();
+      };
+
+      state.audio.addEventListener('canplaythrough', startGameplay, { once: true });
+
+      // Fallback: start game after 3 seconds even if audio not ready
+      setTimeout(startGameplay, 3000);
+
+      // Start loading
+      state.audio.load();
+    } else {
+      // No audio, start immediately
+      state.gameActive = true;
+      state.gameStartTime = performance.now();
+      state.beatIndex = 0;
+      gameLoop();
     }
-
-    state.gameActive = true;
-    state.gameStartTime = performance.now();
-    state.beatIndex = 0;
-
-    gameLoop();
   }
 
   function resetGameState() {

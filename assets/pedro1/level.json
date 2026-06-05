@@ -3,7 +3,7 @@
   "name": "Pedro",
   "bpm": 124,
   "duration": 144.56256235827664,
-  "audioFile": "audio.wav",
+  "audioFile": "audio.mp3",
   "beatWindowMs": 500,
   "beatPattern": [
     {

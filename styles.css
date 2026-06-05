@@ -140,6 +140,29 @@ html, body {
 }
 
 /* Game Screen */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.loading-overlay.hidden {
+  display: none;
+}
+
+.loading-text {
+  font-size: 24px;
+  color: var(--accent-primary);
+  font-weight: 600;
+}
+
 .game-hud {
   position: absolute;
   top: 16px;
