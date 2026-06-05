@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=600, height=600, initial-scale=1.0, user-scalable=no">
+  <meta name="description" content="EDM Nod - Rhythm game for Meta Ray-Ban">
+  <title>EDM Nod</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Menu Screen -->
+    <div id="menu" class="screen">
+      <header class="header">
+        <h1>EDM Nod</h1>
+      </header>
+      <div class="content">
+        <div class="menu-container">
+          <h2 class="menu-subtitle">Select Level</h2>
+          <div class="level-list">
+            <button class="level-item focusable" data-action="select-level" data-level-id="test-level-1">
+              <div class="level-name">Test Level</div>
+              <div class="level-meta">60s • 124 BPM</div>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game" class="screen hidden">
+      <div class="game-hud">
+        <div class="score-container">
+          <div class="score-label">Score</div>
+          <div id="score" class="score-value">0</div>
+        </div>
+        <div class="combo-container">
+          <div id="combo" class="combo-value"></div>
+        </div>
+      </div>
+      <div class="game-area">
+        <canvas id="gameCanvas" width="600" height="600"></canvas>
+      </div>
+    </div>
+
+    <!-- Results Screen -->
+    <div id="results" class="screen hidden">
+      <header class="header">
+        <h1>Level Complete!</h1>
+      </header>
+      <div class="content">
+        <div class="results-container">
+          <div class="result-stat">
+            <div class="stat-label">Final Score</div>
+            <div id="final-score" class="stat-value">0</div>
+          </div>
+          <div class="result-stat">
+            <div class="stat-label">Accuracy</div>
+            <div id="accuracy" class="stat-value">0%</div>
+          </div>
+          <div class="result-stat">
+            <div class="stat-label">Max Combo</div>
+            <div id="max-combo" class="stat-value">0</div>
+          </div>
+          <nav class="nav-bar">
+            <button class="nav-item focusable" data-action="back-to-menu">Back to Menu</button>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>
