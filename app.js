@@ -118,7 +118,10 @@
     gameActive: false,
 
     // Animation
-    animationId: null
+    animationId: null,
+
+    // Audio
+    audio: null
   };
 
   var screens = {};
@@ -299,6 +302,14 @@
     // Take snapshot of current beta position as baseline
     state.orientation.baseBeta = state.orientation.beta;
 
+    // Load and play audio if available
+    if (level.audioFile) {
+      state.audio = new Audio(level.audioFile);
+      state.audio.play().catch(function(err) {
+        console.error('Audio playback failed:', err);
+      });
+    }
+
     state.gameActive = true;
     state.gameStartTime = performance.now();
     state.beatIndex = 0;
@@ -321,6 +332,13 @@
     if (state.animationId) {
       cancelAnimationFrame(state.animationId);
       state.animationId = null;
+    }
+
+    // Stop audio if playing
+    if (state.audio) {
+      state.audio.pause();
+      state.audio.currentTime = 0;
+      state.audio = null;
     }
 
     updateScoreDisplay();
@@ -412,6 +430,12 @@
     if (state.animationId) {
       cancelAnimationFrame(state.animationId);
       state.animationId = null;
+    }
+
+    // Stop audio
+    if (state.audio) {
+      state.audio.pause();
+      state.audio.currentTime = 0;
     }
 
     // Calculate accuracy
