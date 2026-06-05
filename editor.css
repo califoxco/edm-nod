@@ -269,6 +269,7 @@ body {
   top: 0;
   z-index: 10;
   min-width: max-content; /* Allow to expand with canvas */
+  padding-left: 80px; /* Align with track headers */
 }
 
 #ruler-canvas {
