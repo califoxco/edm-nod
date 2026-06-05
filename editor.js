@@ -384,25 +384,39 @@
     }
 
     var data = state.audioBuffer.getChannelData(0);
-    var step = Math.ceil(data.length / canvas.width);
+    var duration = state.audioBuffer.duration;
+    var sampleRate = state.audioBuffer.sampleRate;
     var amp = canvas.height / 2;
 
     ctx.strokeStyle = '#00d4ff';
     ctx.lineWidth = 1;
-    ctx.beginPath();
 
-    for (var i = 0; i < canvas.width; i++) {
+    // Draw waveform using timeline scale
+    // Each pixel represents a time position based on pixelsPerSecond
+    var samplesPerPixel = sampleRate / state.pixelsPerSecond;
+
+    ctx.beginPath();
+    for (var x = 0; x < canvas.width; x++) {
+      var time = pixelsToTime(x);
+      var sampleIndex = Math.floor(time * sampleRate);
+
+      if (sampleIndex >= data.length) break;
+
       var min = 1.0;
       var max = -1.0;
 
-      for (var j = 0; j < step; j++) {
-        var datum = data[(i * step) + j];
+      // Sample a range of audio data for this pixel
+      var startSample = sampleIndex;
+      var endSample = Math.min(startSample + Math.ceil(samplesPerPixel), data.length);
+
+      for (var i = startSample; i < endSample; i++) {
+        var datum = data[i];
         if (datum < min) min = datum;
         if (datum > max) max = datum;
       }
 
-      ctx.moveTo(i, (1 + min) * amp);
-      ctx.lineTo(i, (1 + max) * amp);
+      ctx.moveTo(x, (1 + min) * amp);
+      ctx.lineTo(x, (1 + max) * amp);
     }
 
     ctx.stroke();
