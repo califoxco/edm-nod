@@ -99,9 +99,13 @@
     // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {
       // Spacebar for play/pause (unless typing in input)
-      if (e.code === 'Space' && !isTypingInInput(e.target)) {
-        e.preventDefault();
-        togglePlayPause();
+      if (e.code === 'Space' || e.key === ' ') {
+        if (!isTypingInInput(e.target)) {
+          // Prevent default spacebar behavior (button activation, page scroll)
+          e.preventDefault();
+          e.stopPropagation();
+          togglePlayPause();
+        }
       }
     });
 
