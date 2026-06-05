@@ -11,7 +11,7 @@
       perfect: 200,             // ±200ms for perfect hit
       good: 400                 // ±400ms for good hit
     },
-    arrowDisplayTime: 200,      // Show arrow 200ms before hit time
+    arrowDisplayTime: 500,      // Show arrow 500ms before hit time
     scoring: {
       perfect: 100,
       good: 50,
@@ -28,51 +28,40 @@
     'test-level-1': {
       id: 'test-level-1',
       name: 'Test Level',
-      bpm: 124,
+      bpm: 30,
       duration: 60,
       audioFile: null,
       beatPattern: [
-        // Simple pattern: alternating down/up every second for testing
-        { time: 1.0, action: 'down' },
-        { time: 1.5, action: 'up' },
+        // 30 BPM = one beat every 2 seconds, alternating down/up
         { time: 2.0, action: 'down' },
-        { time: 2.5, action: 'up' },
-        { time: 3.0, action: 'down' },
-        { time: 3.5, action: 'up' },
+        { time: 3.0, action: 'up' },
         { time: 4.0, action: 'down' },
-        { time: 4.5, action: 'up' },
-        { time: 5.0, action: 'down' },
-        { time: 5.5, action: 'up' },
+        { time: 5.0, action: 'up' },
         { time: 6.0, action: 'down' },
-        { time: 6.5, action: 'up' },
-        { time: 7.0, action: 'down' },
-        { time: 7.5, action: 'up' },
+        { time: 7.0, action: 'up' },
         { time: 8.0, action: 'down' },
-        { time: 8.5, action: 'up' },
-        { time: 9.0, action: 'down' },
-        { time: 9.5, action: 'up' },
+        { time: 9.0, action: 'up' },
         { time: 10.0, action: 'down' },
-        { time: 10.5, action: 'up' },
-        { time: 11.0, action: 'down' },
-        { time: 11.5, action: 'up' },
+        { time: 11.0, action: 'up' },
         { time: 12.0, action: 'down' },
-        { time: 12.5, action: 'up' },
-        { time: 13.0, action: 'down' },
-        { time: 13.5, action: 'up' },
+        { time: 13.0, action: 'up' },
         { time: 14.0, action: 'down' },
-        { time: 14.5, action: 'up' },
-        { time: 15.0, action: 'down' },
-        { time: 15.5, action: 'up' },
+        { time: 15.0, action: 'up' },
         { time: 16.0, action: 'down' },
-        { time: 16.5, action: 'up' },
-        { time: 17.0, action: 'down' },
-        { time: 17.5, action: 'up' },
+        { time: 17.0, action: 'up' },
         { time: 18.0, action: 'down' },
-        { time: 18.5, action: 'up' },
-        { time: 19.0, action: 'down' },
-        { time: 19.5, action: 'up' },
+        { time: 19.0, action: 'up' },
         { time: 20.0, action: 'down' },
-        { time: 20.5, action: 'up' }
+        { time: 21.0, action: 'up' },
+        { time: 22.0, action: 'down' },
+        { time: 23.0, action: 'up' },
+        { time: 24.0, action: 'down' },
+        { time: 25.0, action: 'up' },
+        { time: 26.0, action: 'down' },
+        { time: 27.0, action: 'up' },
+        { time: 28.0, action: 'down' },
+        { time: 29.0, action: 'up' },
+        { time: 30.0, action: 'down' }
       ]
     }
   };
@@ -90,6 +79,7 @@
     orientation: {
       beta: 0,
       lastBeta: 0,
+      baseBeta: 0,           // Baseline beta when game starts
       isNodding: false,
       lastNodTime: 0
     },
@@ -194,7 +184,7 @@
   }
 
   function detectNodGesture() {
-    var betaDelta = state.orientation.beta - state.orientation.lastBeta;
+    var betaDelta = state.orientation.beta - state.orientation.baseBeta;
     var now = performance.now();
 
     // Debounce: ignore rapid repeated nods
@@ -205,6 +195,9 @@
     // Check if beta changed enough to register as a nod
     if (Math.abs(betaDelta) >= CONFIG.nodThreshold) {
       state.orientation.lastNodTime = now;
+
+      // Update baseline to current position after detecting nod
+      state.orientation.baseBeta = state.orientation.beta;
 
       if (betaDelta < 0) {
         // Nod down (beta decreases)
@@ -268,6 +261,10 @@
     if (!level) return;
 
     resetGameState();
+
+    // Take snapshot of current beta position as baseline
+    state.orientation.baseBeta = state.orientation.beta;
+
     state.gameActive = true;
     state.gameStartTime = performance.now();
     state.beatIndex = 0;
@@ -403,9 +400,26 @@
     ctx.fillStyle = '#000000';
     ctx.fillRect(0, 0, 600, 600);
 
+    // Update debug display
+    updateDebugDisplay();
+
     // Draw active arrow if present
     if (state.activeArrow) {
       drawArrow(state.activeArrow);
+    }
+  }
+
+  function updateDebugDisplay() {
+    var betaEl = document.getElementById('beta-debug');
+    var deltaEl = document.getElementById('delta-debug');
+
+    if (betaEl) {
+      betaEl.textContent = state.orientation.beta.toFixed(1) + '°';
+    }
+
+    if (deltaEl) {
+      var delta = state.orientation.beta - state.orientation.baseBeta;
+      deltaEl.textContent = delta.toFixed(1) + '°';
     }
   }
 
