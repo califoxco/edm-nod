@@ -314,9 +314,17 @@
       var canvas = state.canvases[key];
       var container = canvas.parentElement;
 
-      // Set canvas to full timeline width (not clamped by container width)
+      // Set canvas to full timeline width based on zoom level
       canvas.width = width;
-      canvas.height = container.clientHeight;
+
+      // Set height based on track type
+      if (key === 'ruler') {
+        canvas.height = 30;
+      } else if (key === 'waveform') {
+        canvas.height = 60;
+      } else {
+        canvas.height = 80;  // beat tracks
+      }
     });
   }
 
