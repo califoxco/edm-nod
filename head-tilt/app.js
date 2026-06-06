@@ -2,8 +2,9 @@
   'use strict';
 
   var CONFIG = {
-    tiltThreshold: 15,     // Degrees of beta change to detect tilt
-    cooldownMs: 500        // Cooldown between detections
+    tiltThresholdUp: 15,      // Degrees of beta change to detect tilt up
+    tiltThresholdDown: 19.5,  // Degrees for tilt down (30% higher than up)
+    cooldownMs: 500           // Cooldown between detections
   };
 
   var state = {
@@ -95,20 +96,27 @@
 
     var betaDelta = state.beta - state.baseBeta;
 
-    // Check if tilt is significant enough
-    if (Math.abs(betaDelta) >= CONFIG.tiltThreshold) {
+    // Check if tilt is significant enough (different thresholds for up/down)
+    var threshold;
+    var direction;
+
+    if (betaDelta < 0) {
+      // Head tilted down (beta decreased) - requires higher threshold
+      threshold = CONFIG.tiltThresholdDown;
+      direction = 'down';
+    } else {
+      // Head tilted up (beta increased)
+      threshold = CONFIG.tiltThresholdUp;
+      direction = 'up';
+    }
+
+    if (Math.abs(betaDelta) >= threshold) {
       state.lastTiltTime = now;
 
       // Update baseline for next detection
       state.baseBeta = state.beta;
 
-      if (betaDelta < 0) {
-        // Head tilted down (beta decreased)
-        showArrow('down');
-      } else {
-        // Head tilted up (beta increased)
-        showArrow('up');
-      }
+      showArrow(direction);
     }
   }
 
